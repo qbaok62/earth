@@ -1,9 +1,11 @@
 uniform sampler2D uDayTexture;
 uniform sampler2D uNightTexture;
 uniform sampler2D uSpecularCloudsTexture;
+uniform sampler2D uPerlintTexture;
 uniform vec3 uSunDirection;
 uniform vec3 uAtmosphereDayColor;
 uniform vec3 uAtmosphereTwilightColor;
+uniform float uTime;
 
 varying vec2 vUv;
 varying vec3 vNormal;
@@ -26,15 +28,21 @@ void main()
     vec3 nightColor = texture(uNightTexture, vUv).rgb;
     color = mix(nightColor, dayColor, dayMix);
 
+    // Perlint
+    vec2 cloudUv = vUv;
+    cloudUv -= 0.5 * uTime * 0.2;
+    float perlint = texture(uPerlintTexture, cloudUv).r;
+
     // Specular cloud color
-    vec2 specularCloudsColor = texture(uSpecularCloudsTexture, vUv).rg;
+    float atmosphereSpeed = 0.05 * uTime;
+    vec2 originSpecularCloudsColor = texture(uSpecularCloudsTexture, vUv).rg;
+    vec2 specularCloudsColor = texture(uSpecularCloudsTexture, vec2(vUv.x - atmosphereSpeed, vUv.y)).rg;
 
     // Cloud
-    // float cloudsMix = specularCloudsColor.g;
-    float cloudsMix = smoothstep(0.5, 1.0, specularCloudsColor.g);
+    float cloudsMix = smoothstep(0.2, 1.0, specularCloudsColor.g);
     cloudsMix *= dayMix;
+    cloudsMix *= smoothstep(0.4, 0.7, perlint);
     color = mix(color, vec3(1.0), cloudsMix);
-    // color = vec3(specularCloudsColor, 0.0);
 
     // Fresnel
     float fresnel = dot(viewDirection, normal) + 1.0;
@@ -44,14 +52,13 @@ void main()
     float atmosphereDayMix = smoothstep(-0.5, 1.0, sunOrientation);
     vec3 atmosphereColor = mix(uAtmosphereTwilightColor, uAtmosphereDayColor, atmosphereDayMix);
     color = mix(color, atmosphereColor, fresnel * atmosphereDayMix);
-    // color = atmosphereColor * fresnel;
 
     // Speculare
     vec3 reflection = reflect(-uSunDirection, normal);
     float specular = -dot(reflection, viewDirection);
     specular = max(specular, 0.0);
     specular = pow(specular, 100.0);
-    specular *= specularCloudsColor.r;
+    specular *= smoothstep(0.0, 0.1,originSpecularCloudsColor.r);
 
     vec3 specularColor = mix(vec3(1.0), atmosphereColor, fresnel);
     color += specular * specularColor;

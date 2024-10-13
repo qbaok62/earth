@@ -24,9 +24,12 @@ const textureLoader = new THREE.TextureLoader();
 /**
  * Earth
  */
-const earthParamesters = {};
-earthParamesters.atmosphereDayColor = "#00aaff";
-earthParamesters.atmosphereTwilightColor = "#ff6600";
+const earthParamesters = {
+  rotationSpeed: 0.1,
+  atmosphereDayColor: "#00aaff",
+  atmosphereTwilightColor: "#ff6600",
+};
+gui.add(earthParamesters, "rotationSpeed").min(0).max(1);
 gui.addColor(earthParamesters, "atmosphereDayColor").onChange(() => {
   earthMaterial.uniforms.uAtmosphereDayColor.value.set(
     earthParamesters.atmosphereDayColor
@@ -56,6 +59,12 @@ const earthSpecularCloudsTexture = textureLoader.load(
   "./earth/specularClouds.jpg"
 );
 earthSpecularCloudsTexture.anisotropy = 8;
+earthSpecularCloudsTexture.wrapS = THREE.RepeatWrapping;
+
+// Perlint Texture
+const perlintTexture = textureLoader.load("./perlin.png");
+perlintTexture.wrapS = THREE.RepeatWrapping;
+perlintTexture.wrapT = THREE.RepeatWrapping;
 
 // Mesh
 const earthGeometry = new THREE.SphereGeometry(2, 64, 64);
@@ -73,10 +82,12 @@ const earthMaterial = new THREE.ShaderMaterial({
     uAtmosphereTwilightColor: new THREE.Uniform(
       new THREE.Color(earthParamesters.atmosphereTwilightColor)
     ),
+    uPerlintTexture: new THREE.Uniform(perlintTexture),
+    uTime: new THREE.Uniform(),
   },
 });
 const earth = new THREE.Mesh(earthGeometry, earthMaterial);
-// scene.add(earth);
+scene.add(earth);
 
 // Atmostphere
 const atmostphereMaterial = new THREE.ShaderMaterial({
@@ -187,7 +198,9 @@ const clock = new THREE.Clock();
 const tick = () => {
   const elapsedTime = clock.getElapsedTime();
 
-  earth.rotation.y = elapsedTime * 0.1;
+  earth.rotation.y = elapsedTime * earthParamesters.rotationSpeed;
+  earthMaterial.uniforms.uTime.value =
+    elapsedTime * earthParamesters.rotationSpeed;
 
   // Update controls
   controls.update();

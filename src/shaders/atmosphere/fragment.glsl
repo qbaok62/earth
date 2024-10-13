@@ -28,7 +28,6 @@ void main()
     // color = vec3(dayAlpha);
 
     float alpha = edgeAlpha * dayAlpha;
-    color = vec3(alpha);
 
     // Final color
     gl_FragColor = vec4(color, alpha);
